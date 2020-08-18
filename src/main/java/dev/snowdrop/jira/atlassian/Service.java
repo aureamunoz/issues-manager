@@ -1,6 +1,7 @@
 package dev.snowdrop.jira.atlassian;
 
 import com.atlassian.jira.rest.client.api.IssueRestClient;
+import com.atlassian.jira.rest.client.api.JiraRestClient;
 import com.atlassian.jira.rest.client.api.domain.BasicIssue;
 import com.atlassian.jira.rest.client.api.domain.Issue;
 import com.atlassian.jira.rest.client.api.domain.Subtask;
@@ -14,16 +15,23 @@ import dev.snowdrop.jira.atlassian.model.Release;
 import io.atlassian.util.concurrent.Promise;
 import org.jboss.logging.Logger;
 
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import java.util.List;
 
-import static dev.snowdrop.jira.atlassian.Utility.*;
+import static dev.snowdrop.jira.atlassian.Utility.getURLFor;
+import static dev.snowdrop.jira.atlassian.Utility.toDateTime;
 
+@ApplicationScoped
 public class Service {
 	public static final String RELEASE_TICKET_TEMPLATE = "ENTSBT-323";
 	private static final Logger LOG = Logger.getLogger(Service.class);
 	private static final String LINK_TYPE = "Dependency";
 
-	public static void linkIssue(String fromIssue, String toIssue) {
+	@Inject
+	JiraRestClient restClient;
+
+	public void linkIssue(String fromIssue, String toIssue) {
 		final var cl = restClient.getIssueClient();
 		final Promise<Issue> toPromise = cl.getIssue(toIssue)
 				.fail(e -> LOG.errorf("Couldn't retrieve %s issue to link to: %s", toIssue, e.getLocalizedMessage()));
@@ -36,12 +44,12 @@ public class Service {
 		LOG.infof("Linked %s with the blocking issue %s: %s", getURLFor(fromIssue), toIssue, to.getSummary());
 	}
 
-	public static Issue getIssue(String issueNumber) {
+	public Issue getIssue(String issueNumber) {
 		final var cl = restClient.getIssueClient();
 		return cl.getIssue(issueNumber).claim();
 	}
 
-	public static void deleteIssues(List<String> issues) {
+	public void deleteIssues(List<String> issues) {
 		final var cl = restClient.getIssueClient();
 		for (String issue : issues) {
 			cl.deleteIssue(issue, false).claim();
@@ -49,7 +57,7 @@ public class Service {
 		}
 	}
 
-	public static BasicIssue clone(Release release, String toCloneFrom) {
+	public BasicIssue clone(Release release, String toCloneFrom) {
 		final IssueRestClient cl = restClient.getIssueClient();
 		Issue issue = cl.getIssue(toCloneFrom).claim();
 		// Create the cloned task
@@ -100,7 +108,7 @@ public class Service {
 		return clonedIssue;
 	}
 
-	public static void createComponentRequests(Release release) {
+	public void createComponentRequests(Release release) {
 		final IssueRestClient cl = restClient.getIssueClient();
 		final String jiraKey = release.getJiraKey();
 
