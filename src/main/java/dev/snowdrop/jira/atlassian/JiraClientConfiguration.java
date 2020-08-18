@@ -20,6 +20,7 @@ import picocli.CommandLine;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import java.net.URI;
+import java.util.Objects;
 
 /**
  * @author <a href="claprun@redhat.com">Christophe Laprun</a>
@@ -31,8 +32,8 @@ public class JiraClientConfiguration {
 	public JiraRestClient client(CommandLine.ParseResult parseResult) {
 		final var user = parseResult.matchedOption('u').getValue().toString();
 		final var password = parseResult.matchedOption('p').getValue().toString();
-		final var jiraServerUri = parseResult.matchedOption("url").getValue().toString();
+		final var jiraServerUri = parseResult.hasMatchedOption("url") ? parseResult.matchedOption("url").getValue().toString() : null;
 		AsynchronousJiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
-		return factory.createWithBasicHttpAuthentication(URI.create(jiraServerUri), user, password);
+		return factory.createWithBasicHttpAuthentication(URI.create(Objects.requireNonNullElse(jiraServerUri, Utility.JIRA_SERVER)), user, password);
 	}
 }
